@@ -1,5 +1,5 @@
 {
-  "name": "vue-formio",
+  "name": "@goatlab/vue-formio",
   "version": "3.0.3",
   "description": "A vue.js renderer for form.io forms.",
   "main": "lib/index",
