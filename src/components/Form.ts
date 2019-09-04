@@ -3,9 +3,11 @@ import Vue from 'vue';
 import { Component, Prop, Watch } from 'vue-property-decorator';
 import AllComponents from 'formiojs/components';
 import Components from 'formiojs/components/Components';
+import { Submission, Form } from '@goatlab/goatjs';
 Components.setComponents(AllComponents);
-import Form from 'formiojs/Form';
+import FormioForm from 'formiojs/Form';
 import Formio from 'formiojs/Formio';
+const pluralize = require('pluralize');
 
 @Component
 export default class extends Vue {
@@ -19,6 +21,12 @@ export default class extends Vue {
 
   @Prop()
   form?: object;
+
+  @Prop()
+  APP_URL?: string;
+
+  @Prop()
+  LOOPBACK_URL?: string;
 
   @Prop()
   submission?: object;
@@ -64,7 +72,90 @@ export default class extends Vue {
     }
   }
 
-  mounted() {
+  async mounted() {
+    let localForms = await Form.local().get();
+    localForms = localForms.reduce((r, form) => {
+      r[form.data._id] = form.data.path;
+      return r;
+    }, {});
+    const loopbackGetPlugin = {
+      priority: 0,
+      preRequest: async request => {
+        if (!(request.method === 'GET') || !request.url.includes(this.APP_URL)) {
+          return undefined;
+        }
+      },
+      request: () => {
+        console.log('request');
+      },
+      preStaticRequest: () => {
+        console.log('preStaticRequest');
+      },
+      staticRequest: async request => {
+        if (!(request.method === 'GET') || !request.url.includes(this.APP_URL)) {
+          return undefined;
+        }
+
+        const { url } = request;
+        const formPath =
+          localForms[url.substring(url.lastIndexOf('/form/') + 6, url.lastIndexOf('/submission'))];
+        const lbQueryUrl = {
+          base: this.LOOPBACK_URL,
+          path: formPath,
+          formField: pluralize.singular(formPath),
+          limit: Number(url.substring(url.lastIndexOf('?limit=') + 7, url.lastIndexOf('&skip'))),
+          filter: url.substring(url.lastIndexOf('&filter=') + 8, url.length),
+          where: url.includes('&where')
+            ? decodeURIComponent(
+                url.substring(url.lastIndexOf('&where') + 6, url.lastIndexOf('__regex'))
+              ).replace('=', '')
+            : undefined,
+          searchString: url.includes('&where')
+            ? decodeURIComponent(
+                url.substring(url.lastIndexOf('__regex') + 8, url.lastIndexOf('&filter='))
+              )
+            : undefined
+        };
+
+        // Make the field searchable
+        if (lbQueryUrl.searchString && lbQueryUrl.where) {
+          lbQueryUrl.where = lbQueryUrl.where.replace('{{input}}', `"${lbQueryUrl.searchString}"`);
+        }
+        try {
+          if (lbQueryUrl.filter) {
+            lbQueryUrl.filter = lbQueryUrl.filter ? JSON.parse(lbQueryUrl.filter) : undefined;
+          }
+        } catch (error) {
+          // console.log('Could not parse FILTER one of your resource queries: ', formPath, url);
+          return undefined;
+        }
+        try {
+          if (lbQueryUrl.where) {
+            lbQueryUrl.where = lbQueryUrl.where ? JSON.parse(lbQueryUrl.where) : undefined;
+            lbQueryUrl.filter.where = lbQueryUrl.where;
+          } else {
+            const currentValue = this.formio.submission.data[lbQueryUrl.formField];
+            if (currentValue) {
+              lbQueryUrl.where = { _id: currentValue };
+              lbQueryUrl.filter.where = lbQueryUrl.where;
+            }
+          }
+        } catch (error) {
+          console.log('Could not parse WHERE one of your resource queries: ', formPath, url);
+          return undefined;
+        }
+        const result = await Submission({ path: lbQueryUrl.path })
+          .remote({ connectorName: 'loopback' })
+          .raw(lbQueryUrl.filter)
+          .populate(lbQueryUrl.filter.related)
+          .get();
+
+        return result;
+      }
+    };
+    Formio.setBaseUrl(this.APP_URL);
+    Formio.registerPlugin(loopbackGetPlugin, `moveCallsToLoopback_${this._uid}`);
+
     this.initializeForm()
       .then(() => {
         this.setupForm();
@@ -78,6 +169,7 @@ export default class extends Vue {
 
   destroyed() {
     if (this.formio) {
+      Formio.deregisterPlugin(`moveCallsToLoopback_${this._uid}`);
       this.formio.destroy(true);
     }
   }
@@ -86,7 +178,7 @@ export default class extends Vue {
     return new Promise((resolve, reject) => {
       if (this.src) {
         resolve(
-          new Form(this.$refs.formio, this.src, this.options)
+          new FormioForm(this.$refs.formio, this.src, this.options)
             .render()
             .then(
               (formio: Formio): Formio => {
@@ -102,7 +194,7 @@ export default class extends Vue {
         );
       } else if (this.form) {
         resolve(
-          new Form(this.$refs.formio, this.form, this.options)
+          new FormioForm(this.$refs.formio, this.form, this.options)
             .render()
             .then(
               (formio: Formio): Formio => {
