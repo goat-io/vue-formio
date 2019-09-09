@@ -148,7 +148,7 @@ export default class extends Vue {
           where = `{"${searchKey}": {"like": {{input}}, "options": "si" }}`
         }
 
-        const lbQueryUrl = {
+        const lbQueryUrl: any = {
           base: this.LOOPBACK_URL,
           path: formPath,
           formField: pluralize.singular(formPath),
