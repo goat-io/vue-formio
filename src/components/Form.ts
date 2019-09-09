@@ -111,6 +111,43 @@ export default class extends Vue {
               url.lastIndexOf('/submission')
             )
           ]
+        const filter = url.includes('&filter')
+          ? decodeURIComponent(
+              url.substring(url.lastIndexOf('&filter=') + 8, url.length)
+            )
+          : '{}'
+
+        let searchString = undefined
+        let where = undefined
+
+        if (url.includes('&where')) {
+          const lastIndex =
+            filter === '{}' ? url.length : url.lastIndexOf('&filter=')
+          searchString = decodeURIComponent(
+            url.substring(url.lastIndexOf('__regex') + 8, lastIndex)
+          )
+
+          where = decodeURIComponent(
+            url.substring(
+              url.lastIndexOf('&where') + 6,
+              url.lastIndexOf('__regex')
+            )
+          ).replace('=', '')
+        } else if (url.includes('__regex')) {
+          const startIndex = url.lastIndexOf('&')
+          const lastIndex = url.lastIndexOf('=')
+
+          searchString = decodeURIComponent(
+            url.substring(lastIndex + 1, url.length)
+          )
+
+          const searchKey = decodeURIComponent(
+            url.substring(startIndex + 1, url.indexOf('__regex'))
+          )
+
+          where = `{"${searchKey}": {"like": {{input}}, "options": "si" }}`
+        }
+
         const lbQueryUrl = {
           base: this.LOOPBACK_URL,
           path: formPath,
@@ -121,32 +158,19 @@ export default class extends Vue {
               url.lastIndexOf('&skip')
             )
           ),
-          filter: url.substring(url.lastIndexOf('&filter=') + 8, url.length),
-          where: url.includes('&where')
-            ? decodeURIComponent(
-                url.substring(
-                  url.lastIndexOf('&where') + 6,
-                  url.lastIndexOf('__regex')
-                )
-              ).replace('=', '')
-            : undefined,
-          searchString: url.includes('&where')
-            ? decodeURIComponent(
-                url.substring(
-                  url.lastIndexOf('__regex') + 8,
-                  url.lastIndexOf('&filter=')
-                )
-              )
-            : undefined
+          filter,
+          where,
+          searchString
         }
 
         // Make the field searchable
         if (lbQueryUrl.searchString && lbQueryUrl.where) {
           lbQueryUrl.where = lbQueryUrl.where.replace(
-            '{{input}}',
+            /{{input}}/g,
             `"${lbQueryUrl.searchString}"`
           )
         }
+
         try {
           if (lbQueryUrl.filter) {
             lbQueryUrl.filter = lbQueryUrl.filter
@@ -154,7 +178,11 @@ export default class extends Vue {
               : undefined
           }
         } catch (error) {
-          // console.log('Could not parse FILTER one of your resource queries: ', formPath, url);
+          console.error(
+            'Could not parse FILTER one of your resource queries: ',
+            formPath,
+            url
+          )
           return undefined
         }
         try {
@@ -180,6 +208,7 @@ export default class extends Vue {
           )
           return undefined
         }
+
         const result = await Submission({ path: lbQueryUrl.path })
           .remote({ connectorName: 'loopback' })
           .raw(lbQueryUrl.filter)
