@@ -1,6 +1,6 @@
 # Original library:
 
-This is a forked from the original formio-vue library. It includes features to use Form.io and Goat Fluent
+This library was forked from the original formio-vue library. It includes features to use Form.io and Goat Fluent
 # vue-formio
 
 A [Vue.js](http://vue.js/) component for rendering out forms based on the [Form.io](https://www.form.io) platform.
