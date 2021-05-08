@@ -13,22 +13,17 @@
     "strict": true,
     "skipLibCheck": true,
     "types": ["node"],
-    "typeRoots": ["node_modules/@types"],
     "baseUrl": ".",
     "outDir": "lib",
     "paths": {
-      "@/*": [
-        "src/*"
-      ]
+      "@/*": ["src/*"]
     }
   },
   "parser": "typescript-eslint-parser",
   "include": [
     "src/**/*.ts",
     "src/**/*.vue",
-    "test/**/*.ts"
+    "test/**/*.ts",
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }

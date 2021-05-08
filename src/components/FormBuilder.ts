@@ -5,7 +5,6 @@ import FormBuilder from 'formiojs/FormBuilder';
 import AllComponents from 'formiojs/components';
 import Components from 'formiojs/components/Components';
 Components.setComponents(AllComponents);
-import Formio from 'formiojs/Formio';
 /*
  * This is a duplicate of Formio Renderer for now. Once the formio.js builder is complete this will be update to mimic it.
  */
@@ -48,7 +47,7 @@ export default class extends Vue {
       this.builder = new FormBuilder(this.$refs.formio, this.form, this.options);
       this.builderReady = this.builder.setDisplay(this.form.display);
       return this.builderReady.then(() => {
-        this.builder.instance.events.onAny((...args: any[]) => {
+        this.builder.instance.events.onAny((...args: [event: string, ...args:any]) => {
           const eventParts = args[0].split('.');
 
           // Only handle formio events.
