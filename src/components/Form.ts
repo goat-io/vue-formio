@@ -23,9 +23,6 @@ export default class extends Vue {
   APP_URL?: string;
 
   @Prop()
-  LOOPBACK_URL?: string;
-
-  @Prop()
   submission?: object;
 
   @Prop()

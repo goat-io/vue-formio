@@ -1,3 +1,6 @@
+# Original library:
+
+This is a forked from the original formio-vue library. It includes features to use Form.io and Goat Fluent
 # vue-formio
 
 A [Vue.js](http://vue.js/) component for rendering out forms based on the [Form.io](https://www.form.io) platform.
@@ -11,7 +14,7 @@ npm-compatible packaging system such as [Browserify](http://browserify.org/) or
 [webpack](http://webpack.github.io/).
 
 ```
-npm install vue-formio --save
+npm install @goatlab/vue-formio --save
 ```
 
 ## Basic Usage
@@ -59,8 +62,11 @@ An object representing the form. Use this instead of src for custom forms.
 ### `submission`: `Object`
 
 An object representing the default data for the form.
-
 **Note:** `src` will override this if a submission url is entered.
+
+### `APP_URL` : `string`
+
+Host URL for the Form.io backend. It is use to intercept calls for the offline plugin
 
 ### `options`: `object`
 
