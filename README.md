@@ -101,3 +101,9 @@ Javascript inside of Vue template file.
 ```
 ## License
 Released under the [MIT License](http://www.opensource.org/licenses/MIT).
+
+## Publish
+
+```
+npm run build && npm publish
+```
