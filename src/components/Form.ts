@@ -29,7 +29,7 @@ export default class extends Vue {
   language?: string;
 
   @Prop()
-  plugin?: object;
+  plugin?: any;
 
   @Prop({ default: () => {} })
   options?: object;
@@ -73,17 +73,12 @@ export default class extends Vue {
 
   async mounted() {
     Formio.setBaseUrl(this.APP_URL);
-    Formio.registerPlugin(this.plugin, `moveCallsToLoopback_${this._uid}`);
-
-    this.initializeForm()
-      .then(() => {
-        this.setupForm();
-      })
-      .catch((err) => {
-        /* eslint-disable no-console */
-        console.warn(err);
-        /* eslint-enable no-console */
-      });
+    Formio.registerPlugin(
+      this.plugin,
+      `moveCallsToLoopback_${this._uid}`
+    );
+    await this.initializeForm();
+    this.setupForm();
   }
 
   destroyed() {
@@ -99,13 +94,10 @@ export default class extends Vue {
         resolve(
           new FormioForm(this.$refs.formio, this.src, this.options)
             .render()
-            .then(
-              (formio: Formio): Formio => {
-                console.log({ formio });
-                this.formio = formio;
-                return formio;
-              }
-            )
+            .then((formio: Formio): Formio => {
+              this.formio = formio;
+              return formio;
+            })
             .catch((err: Error) => {
               /* eslint-disable no-console */
               console.error(err);
@@ -116,12 +108,10 @@ export default class extends Vue {
         const f = Formio.createForm(this.$refs.formio, this.form, this.options);
         resolve(
           f
-            .then(
-              (form: Formio): Formio => {
-                this.formio = form;
-                return form;
-              }
-            )
+            .then((form: Formio): Formio => {
+              this.formio = form;
+              return form;
+            })
             .catch((err: Error) => {
               /* eslint-disable no-console */
               console.error(err);
@@ -150,7 +140,7 @@ export default class extends Vue {
 
     this.formio.language = this.language ? this.language : "en";
 
-    this.formio.events.onAny((...args: [event: string, ...args:any]) => {
+    this.formio.events.onAny((...args: [event: string, ...args: any]) => {
       const eventParts = args[0].split(".");
 
       // Only handle formio events.
